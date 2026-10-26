@@ -34,3 +34,19 @@ export async function getMenu(): Promise<MenuCategory[]> {
 
   return (data ?? []) as MenuCategory[];
 }
+export async function getFeaturedItems(): Promise<MenuItem[]> {
+  const { data, error } = await supabase
+    .from("menu_items")
+    .select(
+      "id, name_my, name_en, description, price, image_url, is_available, is_featured"
+    )
+    .eq("is_featured", true)
+    .eq("is_available", true)
+    .limit(6);
+
+  if (error) {
+    throw new Error(`Could not load featured dishes: ${error.message}`);
+  }
+
+  return (data ?? []) as MenuItem[];
+}

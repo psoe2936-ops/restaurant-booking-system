@@ -1,66 +1,71 @@
 import { Suspense } from "react";
 import { getMenu } from "@/lib/db/menu";
+import { DishRow } from "@/components/menu/dish-row";
 
-async function MenuList() {
-  const categories = await getMenu();
+async function MenuContent() {
+  const all = await getMenu();
+  const categories = all.filter((c) => c.menu_items.length > 0);
 
   if (categories.length === 0) {
-    return <p>The menu is empty.</p>;
+    return (
+      <p className="mt-8 text-muted-foreground">
+        The menu is empty. Please check back soon.
+      </p>
+    );
   }
 
   return (
-    <div className="space-y-10">
-      {categories.map((category) => (
-        <section key={category.id}>
-          <h2 className="text-xl font-semibold">
-            {category.name_en}
-            <span className="ml-2 text-base font-normal text-neutral-500">
-              {category.name_my}
-            </span>
-          </h2>
-
-          <ul className="mt-4 space-y-3">
-            {category.menu_items.map((item) => (
-              <li
-                key={item.id}
-                className={`flex items-start justify-between gap-4 rounded-xl border p-4 ${
-                  item.is_available ? "" : "opacity-50"
-                }`}
+    <>
+      <nav
+        aria-label="Menu categories"
+        className="sticky top-16 z-30 -mx-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6"
+      >
+        <ul className="flex gap-2 overflow-x-auto">
+          {categories.map((category) => (
+            <li key={category.id} className="shrink-0">
+              <a
+                href={`#${category.id}`}
+                className="inline-flex h-10 items-center rounded-full border border-border bg-card px-4 text-sm font-medium hover:bg-secondary"
               >
-                <div>
-                  <p className="font-medium">
-                    {item.name_en}
-                    <span className="ml-2 text-sm text-neutral-500">
-                      {item.name_my}
-                    </span>
-                  </p>
-                  {item.description && (
-                    <p className="mt-1 text-sm text-neutral-600">
-                      {item.description}
-                    </p>
-                  )}
-                  {!item.is_available && (
-                    <p className="mt-1 text-sm font-medium">Sold out</p>
-                  )}
-                </div>
-                <p className="shrink-0 font-semibold">
-                  {item.price.toLocaleString("en-US")} Ks
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
-    </div>
+                {category.name_en}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <div className="mt-10 space-y-14">
+        {categories.map((category) => (
+          <section key={category.id} id={category.id} className="scroll-mt-32">
+            <h2 className="text-2xl font-semibold">
+              {category.name_en}
+              <span className="ml-3 font-sans text-base font-normal text-muted-foreground">
+                {category.name_my}
+              </span>
+            </h2>
+            <ul className="mt-2">
+              {category.menu_items.map((item) => (
+                <DishRow key={item.id} item={item} />
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </>
   );
 }
 
 export default function MenuPage() {
   return (
-    <main className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-8 text-3xl font-bold">Menu</h1>
-      <Suspense fallback={<p>Loading menu...</p>}>
-        <MenuList />
+    <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+      <h1 className="text-4xl font-semibold">Our menu</h1>
+      <p className="mt-3 text-muted-foreground">
+        All prices are in Myanmar kyats (Ks).
+      </p>
+      <Suspense
+        fallback={<p className="mt-8 text-muted-foreground">Loading menu...</p>}
+      >
+        <MenuContent />
       </Suspense>
     </main>
   );
