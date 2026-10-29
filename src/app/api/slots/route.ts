@@ -20,7 +20,11 @@ export async function GET(request: Request) {
       parsed.data.partySize
     );
     return NextResponse.json({ slots });
-  } catch {
+  } catch (error) {
+    console.error(
+      "[api/slots] failed:",
+      error instanceof Error ? error.message : error
+    );
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }
