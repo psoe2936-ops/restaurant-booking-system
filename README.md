@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Restaurant Booking Platform
 
-## Getting Started
+A website for a mid-size restaurant in Myanmar. Guests see the menu and book a table online. Staff manage bookings in an admin dashboard.
 
-First, run the development server:
+**Live site:** https://restaurant-booking-system-ufyz.vercel.app
+
+## Tech stack
+
+Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui, Supabase (Postgres), Clerk, Vercel, GitHub Actions.
+
+## Run it on your computer
+
+1. Install Node.js 20 or newer.
+2. Install packages:
+
+```bash
+npm install
+```
+
+3. Create a `.env.local` file with these names (get the values from Supabase and Clerk):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/admin
+```
+
+4. Start the server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+SQL files are in `supabase/migrations/`. They are the source of truth for the database. `supabase/seed.sql` has sample data.
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the local server |
+| `npm run build` | Make a production build |
+| `npm run lint` | Check the code style |
+| `npm run typecheck` | Check TypeScript types |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Docs
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The technical design is in `docs/`.
