@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { SITE } from "@/lib/site";
 
+async function CurrentYear() {
+  "use cache";
+  return <>{new Date().getFullYear()}</>;
+}
+
 export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-border bg-card">
@@ -40,7 +45,7 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-border py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} {SITE.name}
+        © <CurrentYear /> {SITE.name}
       </div>
     </footer>
   );
