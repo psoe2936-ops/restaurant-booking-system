@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { Button } from "@/components/ui/button";
 import { createBookingAction, getSlotsAction } from "./actions";
 import { formatDate, formatTime } from "@/lib/time/format";
@@ -8,6 +9,8 @@ import type { BookingResult } from "@/lib/db/bookings";
 
 const inputClass =
   "mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-base";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -29,7 +32,9 @@ export function BookingWizard({
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [booking, setBooking] = useState<BookingResult | null>(null);
+  const [captchaToken, setCaptchaToken] = useState("");
   const [isPending, startTransition] = useTransition();
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const dateOk = date >= minDate && date <= maxDate;
 
@@ -50,20 +55,26 @@ export function BookingWizard({
   function submitBooking() {
     setError("");
     startTransition(async () => {
-      const result = await createBookingAction({
-        guestName,
-        phone,
-        email,
-        partySize,
-        startsAt: slot,
-        notes,
-      });
+      const result = await createBookingAction(
+        {
+          guestName,
+          phone,
+          email,
+          partySize,
+          startsAt: slot,
+          notes,
+        },
+        captchaToken
+      );
       if (result.ok) {
         setBooking(result.booking);
         setStep(5);
         return;
       }
       setError(result.message);
+      // A token can be used only once. Get a new one.
+      setCaptchaToken("");
+      turnstileRef.current?.reset();
       if (result.reason === "no_table_available") {
         // The time was taken. Load new free times.
         const fresh = await getSlotsAction(date, partySize);
@@ -271,11 +282,29 @@ export function BookingWizard({
               </div>
             )}
           </dl>
+
+          {TURNSTILE_SITE_KEY ? (
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={TURNSTILE_SITE_KEY}
+              onSuccess={(token) => setCaptchaToken(token)}
+              onExpire={() => setCaptchaToken("")}
+              onError={() => setCaptchaToken("")}
+            />
+          ) : (
+            <p role="alert" className="text-sm text-destructive">
+              Spam check is not set up. Please try again later.
+            </p>
+          )}
+
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setStep(3)}>
               Back
             </Button>
-            <Button onClick={submitBooking} disabled={isPending}>
+            <Button
+              onClick={submitBooking}
+              disabled={isPending || !captchaToken}
+            >
               {isPending ? "Booking..." : "Book my table"}
             </Button>
           </div>

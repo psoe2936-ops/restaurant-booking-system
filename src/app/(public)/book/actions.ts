@@ -13,6 +13,7 @@ import {
   BOOKING_ERROR_MESSAGES,
   type BookingErrorReason,
 } from "@/lib/booking-messages";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 export type SlotsActionResult =
   | { ok: true; slots: string[] }
@@ -20,10 +21,22 @@ export type SlotsActionResult =
 
 export type CreateBookingActionResult =
   | { ok: true; booking: BookingResult }
-  | { ok: false; reason: BookingErrorReason; message: string };
+  | {
+      ok: false;
+      reason: BookingErrorReason | "captcha_failed";
+      message: string;
+    };
 
 function fail(reason: BookingErrorReason): CreateBookingActionResult {
   return { ok: false, reason, message: BOOKING_ERROR_MESSAGES[reason] };
+}
+
+function failCaptcha(): CreateBookingActionResult {
+  return {
+    ok: false,
+    reason: "captcha_failed",
+    message: "We could not check that you are a real person. Please try again.",
+  };
 }
 
 // Step 2 of the wizard: load free times for a date and party size
@@ -51,13 +64,20 @@ export async function getSlotsAction(
   }
 }
 
-// Step 4 of the wizard: create the booking
+// Step 4 of the wizard: check the spam token, then create the booking
 export async function createBookingAction(
-  input: unknown
+  input: unknown,
+  turnstileToken: string
 ): Promise<CreateBookingActionResult> {
   const parsed = createBookingSchema.safeParse(input);
   if (!parsed.success) {
     return fail("invalid_input");
+  }
+
+  // Spam check: ask Cloudflare if the token is real
+  const captcha = await verifyTurnstile(turnstileToken);
+  if (!captcha.ok) {
+    return failCaptcha();
   }
 
   try {
