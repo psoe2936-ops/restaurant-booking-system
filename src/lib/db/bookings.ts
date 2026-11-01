@@ -14,6 +14,28 @@ export type CreateBookingOutcome =
   | { ok: true; booking: BookingResult }
   | { ok: false; reason: BookingErrorReason };
 
+// What a guest is allowed to see on the status page (no phone, no email)
+export type BookingStatusInfo = {
+  code: string;
+  guest_name: string;
+  party_size: number;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  can_cancel: boolean;
+};
+
+export type LookupBookingOutcome =
+  | { ok: true; booking: BookingStatusInfo }
+  | { ok: false; reason: "not_found" | "unknown" };
+
+export type CancelBookingOutcome =
+  | { ok: true; booking: { code: string; status: string; starts_at: string } }
+  | {
+      ok: false;
+      reason: "not_found" | "not_cancellable" | "too_late" | "unknown";
+    };
+
 const KNOWN_REASONS: BookingErrorReason[] = [
   "not_configured",
   "invalid_input",
@@ -73,4 +95,57 @@ export async function createBooking(input: {
   }
 
   return { ok: true, booking: data as BookingResult };
+}
+
+// Status page: find one booking by code + phone
+export async function lookupBooking(
+  code: string,
+  phone: string
+): Promise<LookupBookingOutcome> {
+  const supabase = getServerClient();
+  const { data, error } = await supabase.rpc("lookup_booking", {
+    p_code: code,
+    p_phone: phone,
+  });
+
+  if (error) {
+    if (error.message.includes("not_found")) {
+      return { ok: false, reason: "not_found" };
+    }
+    console.error("[db] lookupBooking failed:", error.message);
+    return { ok: false, reason: "unknown" };
+  }
+
+  return { ok: true, booking: data as BookingStatusInfo };
+}
+
+// Status page: cancel one booking by code + phone
+export async function cancelBooking(
+  code: string,
+  phone: string
+): Promise<CancelBookingOutcome> {
+  const supabase = getServerClient();
+  const { data, error } = await supabase.rpc("cancel_booking", {
+    p_code: code,
+    p_phone: phone,
+  });
+
+  if (error) {
+    if (error.message.includes("not_found")) {
+      return { ok: false, reason: "not_found" };
+    }
+    if (error.message.includes("not_cancellable")) {
+      return { ok: false, reason: "not_cancellable" };
+    }
+    if (error.message.includes("too_late")) {
+      return { ok: false, reason: "too_late" };
+    }
+    console.error("[db] cancelBooking failed:", error.message);
+    return { ok: false, reason: "unknown" };
+  }
+
+  return {
+    ok: true,
+    booking: data as { code: string; status: string; starts_at: string },
+  };
 }
