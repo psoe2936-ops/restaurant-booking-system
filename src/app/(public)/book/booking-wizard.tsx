@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { Button } from "@/components/ui/button";
 import { createBookingAction, getSlotsAction } from "./actions";
@@ -100,8 +101,16 @@ export function BookingWizard({
           {partySize} {partySize === 1 ? "guest" : "guests"}
         </p>
         <p className="mt-4 text-sm text-muted-foreground">
-          Please save your code.
+          Please save your code. You need your code and your phone number to
+          check or cancel your booking. You can cancel online until 2 hours
+          before your time.
         </p>
+        <Link
+          href="/book/status"
+          className="mt-4 inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          Check or cancel your booking
+        </Link>
       </div>
     );
   }

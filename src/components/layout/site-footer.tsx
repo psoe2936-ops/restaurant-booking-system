@@ -15,6 +15,12 @@ export function SiteFooter() {
           <p className="mt-3 max-w-xs text-sm text-muted-foreground">
             Book your table online in under a minute. No account needed.
           </p>
+          <Link
+            href="/book/status"
+            className="mt-3 inline-block text-sm font-medium text-primary underline underline-offset-4"
+          >
+            Check or cancel my booking
+          </Link>
         </div>
 
         <div>
