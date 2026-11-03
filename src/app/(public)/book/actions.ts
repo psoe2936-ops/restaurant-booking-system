@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import {
   createBookingSchema,
   slotsQuerySchema,
@@ -14,6 +15,8 @@ import {
   type BookingErrorReason,
 } from "@/lib/booking-messages";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { sendEmail } from "@/lib/email/send";
+import { buildBookingConfirmationEmail } from "@/lib/email/booking-confirmation";
 
 export type SlotsActionResult =
   | { ok: true; slots: string[] }
@@ -64,7 +67,8 @@ export async function getSlotsAction(
   }
 }
 
-// Step 4 of the wizard: check the spam token, then create the booking
+// Step 4 of the wizard: check the spam token, create the booking,
+// then send the confirmation email (only if the guest typed an email)
 export async function createBookingAction(
   input: unknown,
   turnstileToken: string
@@ -85,6 +89,32 @@ export async function createBookingAction(
     if (!outcome.ok) {
       return fail(outcome.reason);
     }
+
+    const guestEmail = parsed.data.email;
+    if (guestEmail) {
+      const booking = outcome.booking;
+      const guestName = parsed.data.guestName;
+      const partySize = parsed.data.partySize;
+
+      // Runs after the answer is sent. A failed email never breaks the booking.
+      after(async () => {
+        try {
+          const message = buildBookingConfirmationEmail({
+            guestName,
+            code: booking.code,
+            startsAt: booking.starts_at,
+            partySize,
+          });
+          await sendEmail({ to: guestEmail, ...message });
+        } catch (error) {
+          console.error(
+            "[book] confirmation email failed:",
+            error instanceof Error ? error.message : error
+          );
+        }
+      });
+    }
+
     return { ok: true, booking: outcome.booking };
   } catch (error) {
     console.error(
