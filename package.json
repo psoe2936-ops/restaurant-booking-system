@@ -2,13 +2,15 @@
   "name": "restaurant-booking",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
+    "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:db": "vitest run"
+    "test": "vitest run",
+    "test:db": "vitest run --config vitest.db.config.mts",
+    "test:e2e": "node scripts/e2e.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -28,6 +30,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^22.20.5",
     "@types/react": "^19",
