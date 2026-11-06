@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { SignOutButton } from "@clerk/nextjs";
-import { getStaff } from "../../../lib/auth/staff";
+import { getStaff } from "@/lib/auth/staff";
+import { AdminShell } from "@/components/admin/admin-shell";
 
 // Checks the role. Reads the logged-in user, so it must be inside <Suspense>.
 async function AdminGate({ children }: { children: React.ReactNode }) {
@@ -29,7 +30,7 @@ async function AdminGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return <AdminShell role={staff.role}>{children}</AdminShell>;
 }
 
 export default function AdminLayout({
