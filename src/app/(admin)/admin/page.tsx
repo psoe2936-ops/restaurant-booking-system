@@ -1,32 +1,10 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { getTodaysBookings } from "@/lib/db/admin-bookings";
+import { getNeedsAttention, getTodaysBookings } from "@/lib/db/admin-bookings";
 import { formatTime } from "@/lib/time/format";
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  confirmed: "Confirmed",
-  seated: "Seated",
-  completed: "Completed",
-  cancelled: "Cancelled",
-  no_show: "No-show",
-};
-
-function statusClass(status: string) {
-  switch (status) {
-    case "pending":
-      return "bg-gold/30 text-foreground";
-    case "confirmed":
-      return "bg-primary/15 text-primary";
-    case "seated":
-      return "bg-foreground text-background";
-    case "cancelled":
-    case "no_show":
-      return "bg-muted text-muted-foreground line-through";
-    default:
-      return "bg-muted text-foreground";
-  }
-}
+import { BookingActions } from "@/components/admin/booking-actions";
+import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
+import { NeedsAttention } from "@/components/admin/needs-attention";
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
@@ -40,7 +18,10 @@ function StatCard({ label, value }: { label: string; value: number }) {
 async function TodayDashboard() {
   await connection(); // "today" changes with time, so this page is not cached
 
-  const result = await getTodaysBookings();
+  const [result, attention] = await Promise.all([
+    getTodaysBookings(),
+    getNeedsAttention(),
+  ]);
 
   if (!result.ok) {
     return (
@@ -71,6 +52,8 @@ async function TodayDashboard() {
         <StatCard label="Pending" value={pendingCount} />
       </div>
 
+      {attention.ok ? <NeedsAttention bookings={attention.bookings} /> : null}
+
       <h2 className="mt-8 text-lg font-semibold">Today&apos;s bookings</h2>
 
       {bookings.length === 0 ? (
@@ -82,7 +65,7 @@ async function TodayDashboard() {
           {bookings.map((b) => (
             <li
               key={b.id}
-              className="flex flex-wrap items-center justify-between gap-2 p-4"
+              className="flex flex-wrap items-start justify-between gap-3 p-4"
             >
               <div>
                 <p className="font-medium">
@@ -98,11 +81,11 @@ async function TodayDashboard() {
                   </p>
                 ) : null}
               </div>
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-medium ${statusClass(b.status)}`}
-              >
-                {STATUS_LABELS[b.status] ?? b.status}
-              </span>
+
+              <div className="flex flex-col gap-2 sm:items-end">
+                <BookingStatusBadge status={b.status} />
+                <BookingActions bookingId={b.id} status={b.status} />
+              </div>
             </li>
           ))}
         </ul>
