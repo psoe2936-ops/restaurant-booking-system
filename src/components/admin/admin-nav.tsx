@@ -3,12 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const ADMIN_LINKS = [
+type Role = "admin" | "staff";
+
+type AdminLink = {
+  href: string;
+  label: string;
+  adminOnly?: boolean;
+};
+
+const ADMIN_LINKS: AdminLink[] = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/bookings", label: "Bookings" },
   { href: "/admin/menu", label: "Menu" },
-  { href: "/admin/settings", label: "Settings" },
+  { href: "/admin/settings", label: "Settings", adminOnly: true },
 ];
+
+function linksFor(role: Role) {
+  return ADMIN_LINKS.filter((link) => !link.adminOnly || role === "admin");
+}
 
 function isActive(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin";
@@ -16,12 +28,12 @@ function isActive(pathname: string, href: string) {
 }
 
 // Left sidebar links (desktop)
-export function AdminSidebarLinks() {
+export function AdminSidebarLinks({ role }: { role: Role }) {
   const pathname = usePathname();
 
   return (
     <nav className="flex flex-col gap-1">
-      {ADMIN_LINKS.map((link) => {
+      {linksFor(role).map((link) => {
         const active = isActive(pathname, link.href);
         return (
           <Link
@@ -43,12 +55,16 @@ export function AdminSidebarLinks() {
 }
 
 // Bottom tab bar (phone)
-export function AdminTabBar() {
+export function AdminTabBar({ role }: { role: Role }) {
   const pathname = usePathname();
+  const links = linksFor(role);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-background md:hidden">
-      {ADMIN_LINKS.map((link) => {
+    <nav
+      className="fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-background md:hidden"
+      style={{ gridTemplateColumns: `repeat(${links.length}, minmax(0, 1fr))` }}
+    >
+      {links.map((link) => {
         const active = isActive(pathname, link.href);
         return (
           <Link

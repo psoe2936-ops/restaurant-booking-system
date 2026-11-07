@@ -24,7 +24,7 @@ export function AdminShell({
         </div>
 
         <div className="mt-6 flex-1">
-          <AdminSidebarLinks />
+          <AdminSidebarLinks role={role} />
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-4">
@@ -47,7 +47,7 @@ export function AdminShell({
       <main className="p-4 pb-24 md:p-8">{children}</main>
 
       {/* Phone bottom tabs */}
-      <AdminTabBar />
+      <AdminTabBar role={role} />
     </div>
   );
 }

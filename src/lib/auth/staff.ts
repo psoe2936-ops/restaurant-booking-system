@@ -32,3 +32,11 @@ export async function getStaff(): Promise<StaffInfo | null> {
 
   return { userId, role: data.role };
 }
+
+// Same as getStaff(), but only for admins. Staff get null.
+// Use it first in every admin-only page and every admin-only server action.
+export async function getAdmin(): Promise<StaffInfo | null> {
+  const staff = await getStaff();
+  if (!staff || staff.role !== "admin") return null;
+  return staff;
+}
