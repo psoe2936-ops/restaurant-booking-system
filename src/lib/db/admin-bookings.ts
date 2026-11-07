@@ -1,5 +1,9 @@
 import "server-only";
 import { getServerClient } from "@/lib/db/server";
+import {
+  BOOKINGS_PAGE_SIZE,
+  type BookingFilters,
+} from "@/lib/validation/admin-bookings";
 
 export type AdminBooking = {
   id: string;
@@ -26,6 +30,19 @@ export type NeedsAttentionResult =
   | { ok: true; bookings: NeedsAttentionBooking[] }
   | { ok: false };
 
+export type BookingScope = "upcoming" | "day" | "all";
+
+export type SearchBookingsResult =
+  | {
+      ok: true;
+      bookings: AdminBooking[];
+      total: number;
+      page: number;
+      pageSize: number;
+      scope: BookingScope;
+    }
+  | { ok: false };
+
 const RESTAURANT_TZ = "Asia/Yangon";
 
 const BOOKING_COLUMNS =
@@ -49,6 +66,13 @@ function getTodayRangeUtc() {
   }).format(new Date());
 
   return { start: start.toISOString(), end: end.toISOString(), dateLabel };
+}
+
+// The start and the end (in UTC) of one restaurant day, like "2026-11-07".
+function getDayRangeUtc(ymd: string) {
+  const start = new Date(`${ymd}T00:00:00+06:30`);
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  return { start: start.toISOString(), end: end.toISOString() };
 }
 
 // Reads the table labels (T1, T2...) and returns a map: id -> label.
@@ -152,6 +176,110 @@ export async function getNeedsAttention(): Promise<NeedsAttentionResult> {
     return { ok: true, bookings };
   } catch (err) {
     console.error("[admin] getNeedsAttention failed:", err);
+    return { ok: false };
+  }
+}
+
+// ---------------------------------------------------------------
+// Bookings list: filters, search and pages
+// ---------------------------------------------------------------
+// The filters are already checked by parseBookingFilters(), but we
+// never put raw text in the query. The search text is already cleaned.
+//
+//  - a date                     -> only that day, oldest first
+//  - a status and/or a search   -> all dates, newest first
+//  - nothing                    -> from today onward, oldest first
+export async function searchBookings(
+  filters: BookingFilters,
+): Promise<SearchBookingsResult> {
+  const { start: todayStart } = getTodayRangeUtc();
+
+  let scope: BookingScope;
+  if (filters.date) {
+    scope = "day";
+  } else if (filters.status || filters.q) {
+    scope = "all";
+  } else {
+    scope = "upcoming";
+  }
+
+  try {
+    const supabase = getServerClient();
+
+    let query = supabase
+      .from("bookings")
+      .select(BOOKING_COLUMNS, { count: "exact" });
+
+    if (scope === "day" && filters.date) {
+      const { start, end } = getDayRangeUtc(filters.date);
+      query = query.gte("starts_at", start).lt("starts_at", end);
+    }
+
+    if (scope === "upcoming") {
+      query = query.gte("starts_at", todayStart);
+    }
+
+    if (filters.status) {
+      query = query.eq("status", filters.status);
+    }
+
+    if (filters.q) {
+      // The double quotes keep spaces safe inside the filter text.
+      const pattern = `"%${filters.q}%"`;
+      query = query.or(
+        `guest_name.ilike.${pattern},phone.ilike.${pattern},code.ilike.${pattern}`,
+      );
+    }
+
+    const from = (filters.page - 1) * BOOKINGS_PAGE_SIZE;
+    const to = from + BOOKINGS_PAGE_SIZE - 1;
+
+    const { data: rows, error, count } = await query
+      .order("starts_at", { ascending: scope !== "all" })
+      .range(from, to);
+
+    if (error) {
+      // PGRST103 = the page number is too high. Show an empty page.
+      if (error.code === "PGRST103") {
+        return {
+          ok: true,
+          bookings: [],
+          total: 0,
+          page: filters.page,
+          pageSize: BOOKINGS_PAGE_SIZE,
+          scope,
+        };
+      }
+      console.error("[admin] could not search bookings:", error.message);
+      return { ok: false };
+    }
+
+    const labelById = await loadTableLabels(supabase);
+    if (!labelById) return { ok: false };
+
+    const bookings: AdminBooking[] = (rows ?? []).map((row) => ({
+      id: row.id,
+      code: row.code,
+      guest_name: row.guest_name,
+      phone: row.phone,
+      party_size: row.party_size,
+      starts_at: row.starts_at,
+      ends_at: row.ends_at,
+      status: row.status,
+      notes: row.notes,
+      table_label: labelById.get(row.table_id) ?? null,
+    }));
+
+    return {
+      ok: true,
+      bookings,
+      total: count ?? bookings.length,
+      page: filters.page,
+      pageSize: BOOKINGS_PAGE_SIZE,
+      scope,
+    };
+  } catch (err) {
+    console.error("[admin] searchBookings failed:", err);
     return { ok: false };
   }
 }

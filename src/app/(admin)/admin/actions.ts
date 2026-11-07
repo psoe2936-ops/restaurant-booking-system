@@ -49,7 +49,7 @@ export async function updateBookingStatusAction(
     return { ok: false, message: MESSAGES[outcome.reason] ?? MESSAGES.unknown };
   }
 
-  // 4. Refresh the dashboard data.
-  revalidatePath("/admin");
+  // 4. Refresh every admin page (dashboard and bookings list).
+  revalidatePath("/admin", "layout");
   return { ok: true };
 }
