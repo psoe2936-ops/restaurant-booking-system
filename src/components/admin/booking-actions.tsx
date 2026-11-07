@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { updateBookingStatusAction } from "@/app/(admin)/admin/actions";
+import { pauseAutoRefresh, resumeAutoRefresh } from "./refresh-lock";
 
 type NewStatus =
   | "confirmed"
@@ -74,6 +75,7 @@ export function BookingActions({
     if (button.confirmText && !window.confirm(button.confirmText)) return;
 
     setError(null);
+    pauseAutoRefresh(); // do not auto refresh while this change is running
     startTransition(async () => {
       try {
         const result = await updateBookingStatusAction({
@@ -84,6 +86,8 @@ export function BookingActions({
       } catch (err) {
         console.error("[admin] booking action failed:", err);
         setError("Something went wrong. Please try again.");
+      } finally {
+        resumeAutoRefresh();
       }
     });
   }

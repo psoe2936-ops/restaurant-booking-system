@@ -3,6 +3,7 @@ import { UserButton } from "@clerk/nextjs";
 import { SITE } from "@/lib/site";
 import type { StaffRole } from "@/lib/auth/staff";
 import { AdminSidebarLinks, AdminTabBar } from "./admin-nav";
+import { AutoRefresh } from "./auto-refresh";
 
 export function AdminShell({
   role,
@@ -13,6 +14,8 @@ export function AdminShell({
 }) {
   return (
     <div className="min-h-screen md:pl-60">
+      <AutoRefresh />
+
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-border bg-card p-4 md:flex">
         <div>
