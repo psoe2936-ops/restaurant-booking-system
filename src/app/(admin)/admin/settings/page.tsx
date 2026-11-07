@@ -1,8 +1,10 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getAdmin } from "@/lib/auth/staff";
+import { getOpeningHours } from "@/lib/db/admin-hours";
 import { getRestaurantSettings } from "@/lib/db/admin-settings";
 import { AdminOnlyMessage } from "@/components/admin/admin-only-message";
+import { OpeningHoursForm } from "@/components/admin/opening-hours-form";
 import { SettingsForm } from "@/components/admin/settings-form";
 
 async function SettingsContent() {
@@ -11,9 +13,12 @@ async function SettingsContent() {
   const admin = await getAdmin();
   if (!admin) return <AdminOnlyMessage />;
 
-  const result = await getRestaurantSettings();
+  const [settings, hours] = await Promise.all([
+    getRestaurantSettings(),
+    getOpeningHours(),
+  ]);
 
-  if (!result.ok) {
+  if (!settings.ok || !hours.ok) {
     return (
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
@@ -30,7 +35,8 @@ async function SettingsContent() {
       <p className="mt-1 text-sm text-muted-foreground">
         Only admins can see and change this page.
       </p>
-      <SettingsForm settings={result.settings} />
+      <SettingsForm settings={settings.settings} />
+      <OpeningHoursForm rows={hours.rows} />
     </div>
   );
 }
