@@ -15,6 +15,7 @@ const ADMIN_LINKS: AdminLink[] = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/bookings", label: "Bookings" },
   { href: "/admin/menu", label: "Menu" },
+  { href: "/admin/tables", label: "Tables", adminOnly: true },
   { href: "/admin/settings", label: "Settings", adminOnly: true },
 ];
 
