@@ -1,9 +1,11 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getAdmin } from "@/lib/auth/staff";
+import { getBlockedDates } from "@/lib/db/admin-blocked-dates";
 import { getOpeningHours } from "@/lib/db/admin-hours";
 import { getRestaurantSettings } from "@/lib/db/admin-settings";
 import { AdminOnlyMessage } from "@/components/admin/admin-only-message";
+import { BlockedDatesForm } from "@/components/admin/blocked-dates-form";
 import { OpeningHoursForm } from "@/components/admin/opening-hours-form";
 import { SettingsForm } from "@/components/admin/settings-form";
 
@@ -13,12 +15,13 @@ async function SettingsContent() {
   const admin = await getAdmin();
   if (!admin) return <AdminOnlyMessage />;
 
-  const [settings, hours] = await Promise.all([
+  const [settings, hours, blockedDates] = await Promise.all([
     getRestaurantSettings(),
     getOpeningHours(),
+    getBlockedDates(),
   ]);
 
-  if (!settings.ok || !hours.ok) {
+  if (!settings.ok || !hours.ok || !blockedDates.ok) {
     return (
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
@@ -37,6 +40,7 @@ async function SettingsContent() {
       </p>
       <SettingsForm settings={settings.settings} />
       <OpeningHoursForm rows={hours.rows} />
+      <BlockedDatesForm dates={blockedDates.dates} />
     </div>
   );
 }
